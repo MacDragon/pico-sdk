@@ -33,14 +33,19 @@
 #include "pico/binary_info.h"
 #include "pico/bit_ops.h"
 #include "pico/bootrom.h"
+#if LIB_PICO_CYW43_ARCH
+#include "pico/cyw43_arch.h"
+#endif
 #include "pico/divider.h"
 #include "pico/double.h"
 #include "pico/fix/rp2040_usb_device_enumeration.h"
 #include "pico/float.h"
 #include "pico/int64_ops.h"
+#include "pico/i2c_slave.h"
 #include "pico/malloc.h"
 #include "pico/multicore.h"
 #include "pico/printf.h"
+#include "pico/rand.h"
 #include "pico/runtime.h"
 #include "pico/stdio.h"
 #include "pico/stdlib.h"
@@ -79,7 +84,13 @@
 #include "hardware/structs/watchdog.h"
 #include "hardware/structs/xip_ctrl.h"
 #include "hardware/structs/xosc.h"
-        
+
+#if LIB_PICO_MBEDTLS
+#include "mbedtls/ssl.h"
+#include "lwip/altcp_tcp.h"
+#include "lwip/altcp_tls.h"
+#endif
+
 bi_decl(bi_block_device(
                            BINARY_INFO_MAKE_TAG('K', 'S'),
                            "foo",
@@ -110,6 +121,9 @@ __force_inline int something_inlined(int x) {
     return x * 2;
 }
 
+auto_init_mutex(mutex);
+auto_init_recursive_mutex(recursive_mutex);
+
 int main(void) {
     spiggle();
 
@@ -118,6 +132,12 @@ int main(void) {
     printf("HI %d\n", something_inlined((int)time_us_32()));
     puts("Hello Everything!");
     puts("Hello Everything2!");
+
+    hard_assert(mutex_try_enter(&mutex, NULL));
+    hard_assert(!mutex_try_enter(&mutex, NULL));
+    hard_assert(recursive_mutex_try_enter(&recursive_mutex, NULL));
+    hard_assert(recursive_mutex_try_enter(&recursive_mutex, NULL));
     // this should compile as we are Cortex M0+
     __asm volatile("SVC #3");
+
 }

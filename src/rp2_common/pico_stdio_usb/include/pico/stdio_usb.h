@@ -39,9 +39,9 @@
 #define PICO_STDIO_USB_TASK_INTERVAL_US 1000
 #endif
 
-// PICO_CONFIG: PICO_STDIO_USB_LOW_PRIORITY_IRQ, low priority (non hardware) IRQ number to claim for tud_task() background execution, default=31, advanced=true, group=pico_stdio_usb
+// PICO_CONFIG: PICO_STDIO_USB_LOW_PRIORITY_IRQ, Explicit User IRQ number to claim for tud_task() background execution instead of letting the implementation pick a free one dynamically (deprecated), advanced=true, group=pico_stdio_usb
 #ifndef PICO_STDIO_USB_LOW_PRIORITY_IRQ
-#define PICO_STDIO_USB_LOW_PRIORITY_IRQ 31
+// this variable is no longer set by default (one is claimed dynamically), but will be respected if specified
 #endif
 
 // PICO_CONFIG: PICO_STDIO_USB_ENABLE_RESET_VIA_BAUD_RATE, Enable/disable resetting into BOOTSEL mode if the host sets the baud rate to a magic value (PICO_STDIO_USB_RESET_MAGIC_BAUD_RATE), type=bool, default=1, group=pico_stdio_usb
@@ -95,6 +95,21 @@
 // PICO_CONFIG: PICO_STDIO_USB_RESET_RESET_TO_FLASH_DELAY_MS, delays in ms before rebooting via regular flash boot, default=100, group=pico_stdio_usb
 #ifndef PICO_STDIO_USB_RESET_RESET_TO_FLASH_DELAY_MS
 #define PICO_STDIO_USB_RESET_RESET_TO_FLASH_DELAY_MS 100
+#endif
+
+// PICO_CONFIG: PICO_STDIO_USB_CONNECTION_WITHOUT_DTR, Disable use of DTR for connection checking meaning connection is assumed to be valid, type=bool, default=0, group=pico_stdio_usb
+#ifndef PICO_STDIO_USB_CONNECTION_WITHOUT_DTR
+#define PICO_STDIO_USB_CONNECTION_WITHOUT_DTR 0
+#endif
+
+// PICO_CONFIG: PICO_STDIO_USB_DEVICE_SELF_POWERED, Set USB device as self powered device, type=bool, default=0, group=pico_stdio_usb
+#ifndef PICO_STDIO_USB_DEVICE_SELF_POWERED
+#define PICO_STDIO_USB_DEVICE_SELF_POWERED 0
+#endif
+
+// PICO_CONFIG: PICO_STDIO_USB_SUPPORT_CHARS_AVAILABLE_CALLBACK, Enable USB STDIO support for stdio_set_chars_available_callback. Can be disabled to make use of USB CDC RX callback elsewhere, type=bool default=1, group=pico_stdio_usb
+#ifndef PICO_STDIO_USB_SUPPORT_CHARS_AVAILABLE_CALLBACK
+#define PICO_STDIO_USB_SUPPORT_CHARS_AVAILABLE_CALLBACK 1
 #endif
 
 #ifdef __cplusplus

@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef _PICO_PLATFORM_H_
-#define _PICO_PLATFORM_H_
+#ifndef _PICO_PLATFORM_H
+#define _PICO_PLATFORM_H
 
 /** \file platform.h
  *  \defgroup pico_platform pico_platform
@@ -17,6 +17,8 @@
  */
 
 #include "hardware/platform_defs.h"
+#include "hardware/regs/addressmap.h"
+#include "hardware/regs/sio.h"
 
 // Marker for builds targeting the RP2040
 #define PICO_RP2040 1
@@ -151,14 +153,14 @@ extern "C" {
  *
  * For example a `uint32_t` foo that will retain its value if the program is restarted by reset.
  *
- *     uint32_t __uninitialized_ram("my_group_name") foo;
+ *     uint32_t __uninitialized_ram(foo);
  *
- * The section attribute is `.uninitialized_ram.<group>`
+ * The section attribute is `.uninitialized_data.<group>`
  *
  * \param group a string suffix to use in the section name to distinguish groups that can be linker
  *              garbage-collected independently
  */
-#define __uninitialized_ram(group) __attribute__((section(".uninitialized_ram." #group))) group
+#define __uninitialized_ram(group) __attribute__((section(".uninitialized_data." #group))) group
 
 /*! \brief Section attribute macro for placement in flash even in a COPY_TO_RAM binary
  *  \ingroup pico_platform
@@ -172,7 +174,7 @@ extern "C" {
  * \param group a string suffix to use in the section name to distinguish groups that can be linker
  *              garbage-collected independently
  */
-#define __in_flash(group) __attribute__((section(".flashdata" group)))
+#define __in_flash(group) __attribute__((section(".flashdata." group)))
 
 /*! \brief Indicates a function should not be stored in flash
  *  \ingroup pico_platform
@@ -312,6 +314,12 @@ void __attribute__((noreturn)) panic_unsupported(void);
  */
 void __attribute__((noreturn)) panic(const char *fmt, ...);
 
+#ifdef NDEBUG
+#define panic_compact(...) panic(__VA_ARGS__)
+#else
+#define panic_compact(...) panic("")
+#endif
+
 // PICO_CONFIG: PICO_NO_FPGA_CHECK, Remove the FPGA platform check for small code size reduction, type=bool, default=0, advanced=true, group=pico_runtime
 #ifndef PICO_NO_FPGA_CHECK
 #define PICO_NO_FPGA_CHECK 0
@@ -334,7 +342,10 @@ uint8_t rp2040_chip_version(void);
  * @return the RP2040 rom version number (1 for RP2040-B0, 2 for RP2040-B1, 3 for RP2040-B2)
  */
 static inline uint8_t rp2040_rom_version(void) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
     return *(uint8_t*)0x13;
+#pragma GCC diagnostic pop
 }
 
 /*! \brief No-op function for the body of tight loops
@@ -391,7 +402,11 @@ __force_inline static int32_t __mul_instruction(int32_t a, int32_t b) {
  *
  * \return the exception number if the CPU is handling an exception, or 0 otherwise
  */
-uint __get_current_exception(void);
+static inline uint __get_current_exception(void) {
+    uint exception;
+    asm ("mrs %0, ipsr" : "=l" (exception));
+    return exception;
+}
 
 #define WRAPPER_FUNC(x) __wrap_ ## x
 #define REAL_FUNC(x) __real_ ## x
@@ -421,6 +436,15 @@ static inline void busy_wait_at_least_cycles(uint32_t minimum_cycles) {
         "bcs 1b\n"
         : "+r" (minimum_cycles) : : "memory"
     );
+}
+
+/*! \brief Get the current core number
+ *  \ingroup pico_platform
+ *
+ * \return The core number the call was made from
+ */
+__force_inline static uint get_core_num(void) {
+    return (*(uint32_t *) (SIO_BASE + SIO_CPUID_OFFSET));
 }
 
 #else // __ASSEMBLER__
